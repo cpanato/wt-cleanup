@@ -53,6 +53,22 @@ go install github.com/cpanato/wt-cleanup@latest
 
 `git` must be on your `PATH`. `gh` is optional.
 
+### Verify a release
+
+Each archive, SBOM and `checksums.txt` is signed keylessly with [cosign](https://github.com/sigstore/cosign) by the release workflow. Each has a `.sigstore.json` bundle next to it. Every archive also has an SPDX SBOM (`.sbom.json`) and a GitHub build provenance attestation.
+
+```sh
+VERSION=v0.2.0
+FILE=wt-cleanup_${VERSION#v}_darwin_arm64.tar.gz
+
+cosign verify-blob "$FILE" \
+  --bundle "$FILE.sigstore.json" \
+  --certificate-identity "https://github.com/cpanato/wt-cleanup/.github/workflows/release.yaml@refs/tags/$VERSION" \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com
+
+gh attestation verify "$FILE" --repo cpanato/wt-cleanup
+```
+
 ## Usage
 
 ```
