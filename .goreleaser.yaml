@@ -25,6 +25,22 @@ archives:
 checksum:
   name_template: checksums.txt
 
+sboms:
+  - artifacts: archive
+
+# Keyless signing with the release workflow's OIDC identity. Runs before the
+# release is published, so the bundles ship with it (releases are immutable).
+signs:
+  - cmd: cosign
+    artifacts: all
+    signature: "${artifact}.sigstore.json"
+    args:
+      - sign-blob
+      - --bundle=${signature}
+      - --yes
+      - ${artifact}
+    output: true
+
 changelog:
   use: github
   sort: asc
