@@ -30,3 +30,22 @@ changelog:
     exclude:
       - "^docs:"
       - "^test:"
+
+homebrew_casks:
+  - name: wt-cleanup
+    repository:
+      owner: cpanato
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/cpanato/wt-cleanup
+    description: Clean up git worktrees whose work has landed
+    license: Apache-2.0
+    skip_upload: auto # don't publish prereleases
+    hooks:
+      post:
+        # The binaries aren't notarized; clear quarantine so macOS runs them.
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr", args: ["-dr", "com.apple.quarantine", "#{staged_path}/wt-cleanup"]
+          end

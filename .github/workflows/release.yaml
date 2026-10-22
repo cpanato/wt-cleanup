@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub release and upload assets
+      id-token: write # federate a homebrew-tap token through octo-sts
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -30,9 +31,18 @@ jobs:
           cache: false
           check-latest: true
 
+      # Short-lived token that can push the cask to cpanato/homebrew-tap.
+      # Policy: cpanato/homebrew-tap/.github/chainguard/wt-cleanup-release.sts.yaml
+      - uses: octo-sts/action@f603d3be9d8dd9871a265776e625a27b00effe05 # v1.1.1
+        id: octo-sts
+        with:
+          scope: cpanato/homebrew-tap
+          identity: wt-cleanup-release
+
       - uses: goreleaser/goreleaser-action@a4f02ab5355a589de60d917a659ce617ed19b3de # v7.3.0
         with:
           version: latest
           args: release --clean
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ steps.octo-sts.outputs.token }}
