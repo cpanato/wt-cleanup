@@ -25,8 +25,6 @@ changelog:
   use: github
   sort: asc
   filters:
-    include:
-      - LICENSE
     exclude:
       - "^docs:"
       - "^test:"
