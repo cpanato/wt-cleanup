@@ -1,21 +1,14 @@
 # wt-cleanup
 
+[![ci](https://github.com/cpanato/wt-cleanup/actions/workflows/ci.yaml/badge.svg)](https://github.com/cpanato/wt-cleanup/actions/workflows/ci.yaml)
+[![release](https://img.shields.io/github/v/release/cpanato/wt-cleanup)](https://github.com/cpanato/wt-cleanup/releases/latest)
+
 Classify git worktrees and their branches, and optionally remove the ones whose
 work has already landed.
 
 It is safe by default. It prints a report and changes nothing until you pass `--apply`.
 
-```
-$ wt-cleanup
-=== /src/myrepo ===
-base=upstream/main  github=org/myrepo  fetched=2026-10-22 10:48
-  myrepo-feat-a     feat-a        REMOVE  (PR #123 merged (squash/rebase))
-  myrepo-feat-b     feat-b        KEEP    (PR #130 open)
-  myrepo-spike      spike         REVIEW  (2 uncommitted change(s))
-
-summary: 1 removable, 1 keep (open PR), 1 to review, 0 stale record(s)
-dry run — re-run with --apply (add --yes to skip prompts) to act
-```
+![wt-cleanup demo](docs/demo/demo.gif)
 
 ## How it classifies
 
@@ -31,6 +24,18 @@ The primary worktree is never touched. Every other worktree gets one verdict:
 The base is `--base` if you set it. Otherwise it is the first of these that exists: `upstream/main`, `upstream/master`, `origin/main`, `origin/master`, `main`, `master`.
 
 PR state comes from the [`gh`](https://cli.github.com/) CLI, using the `upstream` remote or, failing that, `origin`. If `gh` is not installed, the tool behaves as if you passed `--no-gh`.
+
+## What it never touches
+
+- The primary worktree.
+- Stashes. They are shared by all worktrees, so the tool counts them in the header and leaves them alone.
+- Worktrees with uncommitted changes or a detached HEAD. These are always REVIEW.
+- Branches with commits that their upstream doesn't have. These are REVIEW even when the PR is merged.
+- Anything at all, unless you pass `--apply`. With `--apply` it asks before each removal unless you add `--yes`.
+
+Worktrees are removed with plain `git worktree remove`, without `--force`, so git itself refuses locked or modified trees.
+
+One caveat: the unpushed check needs a live upstream branch. If the remote branch was deleted (common after a merge), a branch whose PR is merged or closed is still REMOVE, and any local commits made after the push are lost with it. Check the REMOVE list before you apply if that matters to you.
 
 ## Install
 
@@ -65,5 +70,7 @@ With no paths, it uses the repo containing the current directory. You can run it
 go test ./...
 golangci-lint run
 ```
+
+To regenerate the demo GIF, run `vhs docs/demo/demo.tape` from the repo root. This needs [vhs](https://github.com/charmbracelet/vhs).
 
 To release, push a `v*` tag. GoReleaser builds binaries for darwin and linux on amd64 and arm64.
