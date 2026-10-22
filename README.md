@@ -39,7 +39,13 @@ One caveat: the unpushed check needs a live upstream branch. If the remote branc
 
 ## Install
 
-Download a binary from [Releases](https://github.com/cpanato/wt-cleanup/releases), or:
+With Homebrew (macOS and Linux):
+
+```sh
+brew install cpanato/tap/wt-cleanup
+```
+
+Or download a binary from [Releases](https://github.com/cpanato/wt-cleanup/releases), or use Go:
 
 ```sh
 go install github.com/cpanato/wt-cleanup@latest
