@@ -9,15 +9,10 @@ import (
 
 	"charm.land/fang/v2"
 	"github.com/spf13/cobra"
+	"sigs.k8s.io/release-utils/version"
 
 	"github.com/cpanato/wt-cleanup/internal/cleanup"
 	"github.com/cpanato/wt-cleanup/internal/gh"
-)
-
-// Set by goreleaser.
-var (
-	version = ""
-	commit  = ""
 )
 
 const long = `Classify git worktrees + their branches and (optionally) remove the ones
@@ -75,12 +70,13 @@ func newRootCmd() *cobra.Command {
 	f.StringVar(&opts.Base, "base", "", "merge base to test against (default: upstream/main, else origin/main, else main)")
 	f.BoolVar(&noGH, "no-gh", false, "skip GitHub PR lookups (offline; ancestor test only)")
 	f.BoolVar(&opts.Caches, "caches", false, "also report (and with --apply delete) .terraform / node_modules caches in the surviving trees")
+	cmd.AddCommand(version.Version())
 	return cmd
 }
 
 func main() {
-	if err := fang.Execute(context.Background(), newRootCmd(),
-		fang.WithVersion(version), fang.WithCommit(commit)); err != nil {
+	// Version info comes from the version subcommand, not a --version flag.
+	if err := fang.Execute(context.Background(), newRootCmd(), fang.WithoutVersion()); err != nil {
 		os.Exit(1)
 	}
 }

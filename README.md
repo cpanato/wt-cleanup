@@ -70,6 +70,8 @@ With no paths, it uses the repo containing the current directory. You can run it
 | `--no-gh` | Skip GitHub PR lookups and use only the ancestor test. Works offline. |
 | `--caches` | Also report `.terraform` and `node_modules` directories in the surviving worktrees. With `--apply`, delete them. |
 
+Run `wt-cleanup version` to print build info, or `wt-cleanup version --json` for JSON.
+
 ## Development
 
 ```sh
