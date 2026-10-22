@@ -7,8 +7,13 @@ on:
 
 permissions: {}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   goreleaser:
+    name: goreleaser
     runs-on: ubuntu-latest
     permissions:
       contents: write # create the GitHub release and upload assets

@@ -22,8 +22,6 @@ jobs:
 
     permissions:
       contents: read # Check out the repository for analysis.
-      actions: read # Read workflow metadata for the SARIF upload.
-      security-events: write # Upload zizmor SARIF results to GitHub Code Scanning.
 
     steps:
       - name: Checkout
@@ -35,4 +33,8 @@ jobs:
         uses: zizmorcore/zizmor-action@85b2b9fb8e3325e7a23d7d0a9d7ba5ae0f999e3e # v0.7.1
         with:
           persona: pedantic
+          # Code scanning isn't available on this private repo; report findings
+          # as PR annotations instead of a SARIF upload.
+          advanced-security: false
+          annotations: true
           collect: workflows,actions,dependabot
