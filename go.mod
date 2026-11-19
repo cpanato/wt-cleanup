@@ -5,7 +5,7 @@ go 1.27
 require (
 	charm.land/fang/v2 v2.0.1
 	charm.land/huh/v2 v2.0.3
-	charm.land/lipgloss/v2 v2.0.6
+	charm.land/lipgloss/v2 v2.1.0
 	github.com/spf13/cobra v1.10.2
 	sigs.k8s.io/release-utils v0.12.5
 )
