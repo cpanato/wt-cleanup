@@ -26,6 +26,7 @@ Classification per worktree (the primary worktree is never touched):
            tree is clean with nothing unpushed -> remove worktree + delete branch
   KEEP     branch has an OPEN PR
   REVIEW   no PR and not merged, or dirty tree, or unpushed commits -> left alone
+           unless --review asks you to remove a clean, attached worktree
 
 With no repo-path arguments, the repo containing the current directory is used.`
 
@@ -65,7 +66,8 @@ func newRootCmd() *cobra.Command {
 
 	f := cmd.Flags()
 	f.BoolVar(&opts.Apply, "apply", false, "actually remove worktrees / delete branches (default: dry run)")
-	f.BoolVarP(&opts.Yes, "yes", "y", false, "with --apply, don't prompt per worktree")
+	f.BoolVarP(&opts.Yes, "yes", "y", false, "with --apply, skip ordinary removal prompts (--review still prompts)")
+	f.BoolVar(&opts.Review, "review", false, "with --apply, ask one by one about removing clean REVIEW worktrees (always prompts, even with --yes)")
 	f.BoolVar(&opts.Fetch, "fetch", false, "git fetch --prune every remote first (SSH: expect a YubiKey touch)")
 	f.StringVar(&opts.Base, "base", "", "merge base to test against (default: upstream/main, else origin/main, else main)")
 	f.BoolVar(&noGH, "no-gh", false, "skip GitHub PR lookups (offline; ancestor test only)")
