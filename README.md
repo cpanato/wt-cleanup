@@ -19,7 +19,7 @@ The primary worktree is never touched. Every other worktree gets one verdict:
 | `PRUNE`  | The directory is gone and only git's admin record remains. | `git worktree prune` |
 | `REMOVE` | The branch is an ancestor of the base, or its PR is merged or closed, and the tree is clean with no unpushed commits. | Remove the worktree and delete the branch |
 | `KEEP`   | The branch has an open PR. | Nothing |
-| `REVIEW` | Anything else: no PR and not merged, a dirty tree, unpushed commits, or a detached HEAD. | Nothing by default; `--review` offers to remove clean, attached trees after confirmation |
+| `REVIEW` | Anything else: no PR and not merged, a dirty tree, unpushed commits, or a detached HEAD. | Nothing by default; `--review` offers to remove clean trees after confirmation |
 
 The base is `--base` if you set it. Otherwise it is the first of these that exists: `upstream/main`, `upstream/master`, `origin/main`, `origin/master`, `main`, `master`.
 
@@ -29,7 +29,8 @@ PR state comes from the [`gh`](https://cli.github.com/) CLI, using the `upstream
 
 - The primary worktree.
 - Stashes. They are shared by all worktrees, so the tool counts them in the header and leaves them alone.
-- Worktrees with uncommitted changes or a detached HEAD. These are always REVIEW.
+- Worktrees with uncommitted changes. These are always REVIEW and cannot be removed by `--review`.
+- Detached worktrees, unless you explicitly confirm removal with `--review`.
 - Branches with commits that their upstream doesn't have, unless you explicitly confirm removal with `--review`. These are REVIEW even when the PR is merged.
 - Anything at all, unless you pass `--apply`. With `--apply` it asks before each removal unless you add `--yes`. Removals offered by `--review` always require confirmation.
 
@@ -81,7 +82,7 @@ With no paths, it uses the repo containing the current directory. You can run it
 |------|-------------|
 | `--apply` | Remove worktrees and delete branches. Without it, the tool only reports. |
 | `-y`, `--yes` | With `--apply`, skip ordinary removal prompts. `--review` still prompts. |
-| `--review` | With `--apply`, ask one by one whether to remove clean, attached `REVIEW` worktrees and their branches. Always prompts, even with `--yes`. |
+| `--review` | With `--apply`, ask one by one whether to remove clean `REVIEW` worktrees and their branches, if any. Includes detached HEADs. Always prompts, even with `--yes`. |
 | `--fetch` | Run `git fetch --all --prune` first. Over SSH, this may ask for a security key touch. |
 | `--base <ref>` | The ref to test against for "already landed". |
 | `--no-gh` | Skip GitHub PR lookups and use only the ancestor test. Works offline. |
@@ -97,8 +98,10 @@ wt-cleanup --apply --review
 
 Answer yes to remove a review worktree and its branch, no to keep it, or quit to
 stop removals. The prompt includes the review reason and warns that unmerged or
-unpushed commits may be discarded. Dirty worktrees, detached HEADs, and open PRs
-stay protected. With `--apply --yes --review`, ordinary removals skip confirmation
+unpushed commits may be discarded. For detached worktrees, confirmation removes
+only the worktree and warns about commits reachable only from its detached HEAD;
+there is no branch to delete. Dirty worktrees and open PRs stay protected.
+With `--apply --yes --review`, ordinary removals skip confirmation
 but review worktrees still require an answer. Without `--apply`, nothing is removed
 and no prompts appear.
 
