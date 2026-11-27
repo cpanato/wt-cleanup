@@ -25,7 +25,7 @@ type Options struct {
 	Base   string // override; empty picks a default
 	UseGH  bool
 	Caches bool
-	Review bool // prompt for clean, attached REVIEW worktrees, even with Yes
+	Review bool // prompt for clean REVIEW worktrees, even with Yes
 }
 
 // Prompter asks the user to confirm actions. It is swappable for tests.
@@ -137,7 +137,7 @@ func (r *Runner) Repo(ctx context.Context, dir string) error {
 			r.Totals.Keep++
 		default:
 			r.Totals.Review++
-			if r.Opts.Review && facts.Branch != "" && facts.Dirty == 0 {
+			if r.Opts.Review && facts.Dirty == 0 {
 				toRemove = append(toRemove, removal{path: wt.Path, branch: wt.Branch, reviewReason: res.Reason})
 			}
 		}
@@ -207,6 +207,9 @@ loop:
 			title := fmt.Sprintf("remove worktree %s and branch %s?", rm.path, rm.branch)
 			if rm.reviewReason != "" {
 				title = fmt.Sprintf("%s: %s. Remove worktree and delete branch %s, discarding unmerged or unpushed commits?", rm.path, rm.reviewReason, rm.branch)
+				if rm.branch == "" {
+					title = fmt.Sprintf("%s: %s. Remove worktree, discarding commits reachable only from its detached HEAD?", rm.path, rm.reviewReason)
+				}
 			}
 			switch r.Prompt.AskRemove(title) {
 			case ui.Quit:
@@ -219,6 +222,10 @@ loop:
 		}
 		if err := repo.RemoveWorktree(ctx, rm.path); err != nil {
 			r.printf("  %s to remove %s — left in place\n", ui.Red.Render("failed"), rm.path)
+			continue
+		}
+		if rm.branch == "" {
+			r.printf("  %s %s (detached HEAD; no branch to delete)\n", ui.Green.Render("removed"), rm.path)
 			continue
 		}
 		if err := repo.DeleteBranch(ctx, rm.branch); err != nil {

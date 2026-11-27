@@ -26,7 +26,7 @@ Classification per worktree (the primary worktree is never touched):
            tree is clean with nothing unpushed -> remove worktree + delete branch
   KEEP     branch has an OPEN PR
   REVIEW   no PR and not merged, or dirty tree, or unpushed commits -> left alone
-           unless --review asks you to remove a clean, attached worktree
+           unless --review asks you to remove a clean worktree
 
 With no repo-path arguments, the repo containing the current directory is used.`
 

@@ -210,12 +210,18 @@ func TestReviewPrompts(t *testing.T) {
 		wantRemoved bool
 	}{
 		{"dry run", false, ui.Yes, 0, false},
-		{"accept", true, ui.Yes, 2, true},
-		{"decline", true, ui.No, 2, false},
+		{"accept", true, ui.Yes, 3, true},
+		{"decline", true, ui.No, 3, false},
 		{"quit", true, ui.Quit, 1, false},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			s, wt := setup(t)
+			s.commit(wt["detached"], "detached review commit")
+			dirtyDetached := filepath.Join(s.root, "dirty-detached")
+			s.git(s.repo, "worktree", "add", "-q", "--detach", dirtyDetached, "main")
+			if err := os.WriteFile(filepath.Join(dirtyDetached, "untracked"), []byte("review notes"), 0o600); err != nil {
+				t.Fatal(err)
+			}
 			var asked []string
 			prompt := Prompter{AskRemove: func(title string) ui.Answer {
 				asked = append(asked, title)
@@ -226,6 +232,12 @@ func TestReviewPrompts(t *testing.T) {
 				t.Fatalf("asked = %q, want %d prompts\n%s", asked, tc.wantPrompts, out)
 			}
 			for _, title := range asked {
+				if strings.Contains(title, wt["detached"]) {
+					if !strings.Contains(title, "discarding commits reachable only from its detached HEAD") || strings.Contains(title, "delete branch") {
+						t.Errorf("incorrect detached prompt: %q", title)
+					}
+					continue
+				}
 				if !strings.Contains(title, "discarding unmerged or unpushed commits") {
 					t.Errorf("missing warning in %q", title)
 				}
@@ -238,10 +250,17 @@ func TestReviewPrompts(t *testing.T) {
 					t.Errorf("%s: want removed=%v\n%s", name, tc.wantRemoved, out)
 				}
 			}
-			for _, name := range []string{"dirty", "detached"} {
-				if !s.exists(wt[name]) {
-					t.Errorf("protected %s worktree removed", name)
-				}
+			if s.exists(wt["detached"]) == tc.wantRemoved {
+				t.Errorf("detached worktree: want removed=%v\n%s", tc.wantRemoved, out)
+			}
+			if tc.wantRemoved && !strings.Contains(out, "detached HEAD; no branch to delete") {
+				t.Errorf("missing detached removal result\n%s", out)
+			}
+			if !s.exists(wt["dirty"]) {
+				t.Error("dirty worktree removed")
+			}
+			if !s.exists(dirtyDetached) {
+				t.Error("dirty detached worktree removed")
 			}
 			if !s.exists(s.repo) || !s.hasBranch("main") {
 				t.Error("primary worktree or branch removed")
