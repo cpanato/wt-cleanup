@@ -25,6 +25,7 @@ type Options struct {
 	Base   string // override; empty picks a default
 	UseGH  bool
 	Caches bool
+	Review bool // prompt for clean, attached REVIEW worktrees, even with Yes
 }
 
 // Prompter asks the user to confirm actions. It is swappable for tests.
@@ -61,6 +62,7 @@ func (r *Runner) printf(format string, a ...any) {
 
 type removal struct {
 	path, branch string
+	reviewReason string // nonempty requires explicit confirmation, even with --yes
 }
 
 // Repo processes a single repository. Errors are reported and returned but
@@ -129,12 +131,15 @@ func (r *Runner) Repo(ctx context.Context, dir string) error {
 			needPrune = true
 			r.Totals.Prune++
 		case classify.Remove:
-			toRemove = append(toRemove, removal{wt.Path, wt.Branch})
+			toRemove = append(toRemove, removal{path: wt.Path, branch: wt.Branch})
 			r.Totals.Remove++
 		case classify.Keep:
 			r.Totals.Keep++
 		default:
 			r.Totals.Review++
+			if r.Opts.Review && facts.Branch != "" && facts.Dirty == 0 {
+				toRemove = append(toRemove, removal{path: wt.Path, branch: wt.Branch, reviewReason: res.Reason})
+			}
 		}
 	}
 
@@ -198,8 +203,12 @@ func (r *Runner) printRow(wt git.Worktree, res classify.Result) {
 func (r *Runner) apply(ctx context.Context, repo *git.Repo, toRemove []removal, needPrune bool) {
 loop:
 	for _, rm := range toRemove {
-		if !r.Opts.Yes {
-			switch r.Prompt.AskRemove(fmt.Sprintf("remove worktree %s and branch %s?", rm.path, rm.branch)) {
+		if !r.Opts.Yes || rm.reviewReason != "" {
+			title := fmt.Sprintf("remove worktree %s and branch %s?", rm.path, rm.branch)
+			if rm.reviewReason != "" {
+				title = fmt.Sprintf("%s: %s. Remove worktree and delete branch %s, discarding unmerged or unpushed commits?", rm.path, rm.reviewReason, rm.branch)
+			}
+			switch r.Prompt.AskRemove(title) {
 			case ui.Quit:
 				r.printf("stopping\n")
 				break loop

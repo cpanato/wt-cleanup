@@ -201,6 +201,55 @@ func TestApplyPrompts(t *testing.T) {
 	}
 }
 
+func TestReviewPrompts(t *testing.T) {
+	for _, tc := range []struct {
+		name        string
+		apply       bool
+		answer      ui.Answer
+		wantPrompts int
+		wantRemoved bool
+	}{
+		{"dry run", false, ui.Yes, 0, false},
+		{"accept", true, ui.Yes, 2, true},
+		{"decline", true, ui.No, 2, false},
+		{"quit", true, ui.Quit, 1, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			s, wt := setup(t)
+			var asked []string
+			prompt := Prompter{AskRemove: func(title string) ui.Answer {
+				asked = append(asked, title)
+				return tc.answer
+			}}
+			_, out := run(t, Options{Apply: tc.apply, Yes: true, Review: true}, s.repo, prompt)
+			if len(asked) != tc.wantPrompts {
+				t.Fatalf("asked = %q, want %d prompts\n%s", asked, tc.wantPrompts, out)
+			}
+			for _, title := range asked {
+				if !strings.Contains(title, "discarding unmerged or unpushed commits") {
+					t.Errorf("missing warning in %q", title)
+				}
+				if !strings.Contains(title, wt["wip"]) && !strings.Contains(title, wt["unpushed"]) {
+					t.Errorf("unexpected review prompt: %q", title)
+				}
+			}
+			for _, name := range []string{"wip", "unpushed"} {
+				if s.exists(wt[name]) == tc.wantRemoved || s.hasBranch(name) == tc.wantRemoved {
+					t.Errorf("%s: want removed=%v\n%s", name, tc.wantRemoved, out)
+				}
+			}
+			for _, name := range []string{"dirty", "detached"} {
+				if !s.exists(wt[name]) {
+					t.Errorf("protected %s worktree removed", name)
+				}
+			}
+			if !s.exists(s.repo) || !s.hasBranch("main") {
+				t.Error("primary worktree or branch removed")
+			}
+		})
+	}
+}
+
 func TestBaseOverrideAndNotARepo(t *testing.T) {
 	s, _ := setup(t)
 	_, out := run(t, Options{Base: "main"}, s.repo, Prompter{})
